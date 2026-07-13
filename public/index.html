@@ -38,6 +38,7 @@
       .text-expense {
         color: #dc3545;
       }
+
       .btn {
         padding: 10px 15px;
         border: none;
@@ -56,9 +57,20 @@
         background-color: #6c757d;
         color: white;
       }
+      .btn-outline {
+        background-color: white;
+        color: #007bff;
+        border: 1px solid #007bff;
+      }
       .btn-primary:hover {
         background-color: #0056b3;
       }
+      .btn-group {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 15px;
+      }
+
       .form-group {
         margin-bottom: 15px;
       }
@@ -66,6 +78,7 @@
         display: block;
         margin-bottom: 5px;
         font-weight: bold;
+        font-size: 0.9em;
       }
       input,
       select {
@@ -92,15 +105,93 @@
       .hidden {
         display: none;
       }
+
+      /* カレンダー用のスタイル */
+      .calendar-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+      }
+      .calendar-header button {
+        width: auto;
+        padding: 5px 15px;
+      }
+      .calendar-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 5px;
+        text-align: center;
+      }
+      .calendar-day-header {
+        font-weight: bold;
+        background-color: #eee;
+        padding: 5px 0;
+        border-radius: 4px;
+      }
+      .calendar-day {
+        background-color: white;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        min-height: 80px;
+        padding: 5px;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      .calendar-day:hover {
+        background-color: #f0f8ff;
+        border-color: #007bff;
+      }
+      .day-number {
+        font-size: 0.9em;
+        margin-bottom: 5px;
+      }
+      .day-income {
+        color: #007bff;
+        font-size: 0.75em;
+        font-weight: bold;
+        margin-bottom: 2px;
+      }
+      .day-expense {
+        color: #dc3545;
+        font-size: 0.75em;
+        font-weight: bold;
+        margin-bottom: 2px;
+      }
+
+      /* 👇 サブスク専用のスタイル 👇 */
+      .sub-item {
+        font-size: 0.65em;
+        width: 95%;
+        padding: 3px 0;
+        border-radius: 4px;
+        margin-top: 2px;
+        line-height: 1.2;
+        word-break: break-all;
+      }
+      /* 引き落とし後（濃い表示） */
+      .sub-past {
+        background-color: #ffe6e6;
+        color: #cc0000;
+        border: 1px solid #ffcccc;
+        cursor: help;
+      }
+      /* 引き落とし前（薄い表示） */
+      .sub-future {
+        background-color: #f9f9f9;
+        color: #999;
+        border: 1px dashed #ccc;
+        opacity: 0.7;
+        cursor: help;
+      }
     </style>
   </head>
   <body>
-    <!-- ========================================== -->
     <!-- 1. ダッシュボード画面 -->
-    <!-- ========================================== -->
     <div id="dashboardView">
       <h2>📊 ダッシュボード</h2>
-
       <div class="card">
         <div class="summary-grid">
           <div class="summary-item">
@@ -121,9 +212,14 @@
         </div>
       </div>
 
-      <button class="btn btn-primary" id="showFormBtn">
-        ＋ 新しく収支を記録する
-      </button>
+      <div class="btn-group">
+        <button class="btn btn-primary" id="showFormBtn">
+          ＋ 新しく記録する
+        </button>
+        <button class="btn btn-outline" id="showCalendarBtn">
+          📅 カレンダーを見る
+        </button>
+      </div>
 
       <div class="card">
         <h3>📋 最近の履歴</h3>
@@ -135,31 +231,53 @@
               <th>金額</th>
             </tr>
           </thead>
-          <tbody id="historyTableBody">
-            <!-- ここにデータが入ります -->
-          </tbody>
+          <tbody id="historyTableBody"></tbody>
         </table>
       </div>
     </div>
 
-    <!-- ========================================== -->
-    <!-- 2. 入力フォーム画面 (最初は非表示) -->
-    <!-- ========================================== -->
-    <div id="formView" class="hidden">
-      <h2>💰 収支の記録</h2>
+    <!-- 2. カレンダー画面 -->
+    <div id="calendarView" class="hidden">
+      <h2>📅 カレンダー</h2>
       <div class="card">
+        <div class="calendar-header">
+          <button class="btn btn-secondary" id="prevMonthBtn">◀</button>
+          <h3 id="calendarTitle" style="margin: 0">2026年 7月</h3>
+          <button class="btn btn-secondary" id="nextMonthBtn">▶</button>
+        </div>
+        <div class="calendar-grid" id="calendarGrid"></div>
+      </div>
+      <button class="btn btn-secondary" id="backToDashFromCalBtn">
+        ダッシュボードに戻る
+      </button>
+    </div>
+
+    <!-- 3. 入力フォーム画面 -->
+    <div id="formView" class="hidden">
+      <h2>✍️ 記録を追加</h2>
+      <div class="card">
+        <div class="btn-group">
+          <button class="btn btn-primary" id="modeNormalBtn">通常の収支</button>
+          <button class="btn btn-outline" id="modeSubBtn">
+            🔄 サブスク登録
+          </button>
+        </div>
+
+        <!-- ① 通常の収支フォーム -->
         <form id="transactionForm">
           <input
             type="hidden"
             id="userId"
             value="123e4567-e89b-12d3-a456-426614174000"
           />
-
+          <div class="form-group">
+            <label for="transactionDate">日付</label>
+            <input type="date" id="transactionDate" required />
+          </div>
           <div class="form-group">
             <label for="amount">金額 (円)</label>
             <input type="number" id="amount" required placeholder="例: 1500" />
           </div>
-
           <div class="form-group">
             <label for="type">種類</label>
             <select id="type">
@@ -167,7 +285,6 @@
               <option value="income">収入</option>
             </select>
           </div>
-
           <div class="form-group">
             <label for="category">カテゴリ</label>
             <input
@@ -177,12 +294,57 @@
               placeholder="例: 食費、給料など"
             />
           </div>
+          <button type="submit" class="btn btn-primary">収支を保存する</button>
+        </form>
 
-          <button type="submit" class="btn btn-primary">記録を保存する</button>
-          <button type="button" class="btn btn-secondary" id="cancelBtn">
-            キャンセルして戻る
+        <!-- ② サブスク用のフォーム -->
+        <form id="subscriptionForm" class="hidden">
+          <div class="form-group">
+            <label for="subAmount">毎月の金額 (円)</label>
+            <input
+              type="number"
+              id="subAmount"
+              required
+              placeholder="例: 1080"
+            />
+          </div>
+          <div class="form-group">
+            <label for="subName">サブスク名</label>
+            <input
+              type="text"
+              id="subName"
+              required
+              placeholder="例: Netflix, Spotify"
+            />
+          </div>
+          <div class="form-group">
+            <label for="billingDay">毎月の引き落とし日 (1〜31日)</label>
+            <input
+              type="number"
+              id="billingDay"
+              required
+              min="1"
+              max="31"
+              placeholder="例: 25"
+            />
+          </div>
+          <button
+            type="submit"
+            class="btn btn-primary"
+            style="background-color: #28a745"
+          >
+            サブスクを登録する
           </button>
         </form>
+
+        <button
+          type="button"
+          class="btn btn-secondary"
+          id="cancelBtn"
+          style="margin-top: 10px"
+        >
+          キャンセルして戻る
+        </button>
         <div
           id="message"
           style="text-align: center; margin-top: 10px; font-weight: bold"
@@ -190,48 +352,198 @@
       </div>
     </div>
 
-    <!-- ========================================== -->
-    <!-- JavaScript ロジック (ここが抜けていました！) -->
-    <!-- ========================================== -->
+    <!-- JavaScript ロジック -->
     <script>
       const dashboardView = document.getElementById("dashboardView");
+      const calendarView = document.getElementById("calendarView");
       const formView = document.getElementById("formView");
-      const showFormBtn = document.getElementById("showFormBtn");
-      const cancelBtn = document.getElementById("cancelBtn");
-      const transactionForm = document.getElementById("transactionForm");
+      const transactionDateInput = document.getElementById("transactionDate");
 
-      // --- 画面切り替え関数 ---
-      showFormBtn.addEventListener("click", () => {
+      let allTransactions = [];
+      let allSubscriptions = []; // 📝 サブスク用のデータを保存する変数を追加
+
+      let currentCalYear = new Date().getFullYear();
+      let currentCalMonth = new Date().getMonth();
+
+      const todayStr = new Date().toISOString().split("T")[0];
+      transactionDateInput.value = todayStr;
+
+      function switchView(viewToShow) {
         dashboardView.classList.add("hidden");
-        formView.classList.remove("hidden");
-      });
-
-      cancelBtn.addEventListener("click", () => {
+        calendarView.classList.add("hidden");
         formView.classList.add("hidden");
-        dashboardView.classList.remove("hidden");
-        document.getElementById("message").textContent = "";
+        viewToShow.classList.remove("hidden");
+      }
+
+      document.getElementById("showFormBtn").addEventListener("click", () => {
+        transactionDateInput.value = todayStr;
+        switchView(formView);
       });
 
-      // --- データの取得とダッシュボードの計算 ---
+      document
+        .getElementById("showCalendarBtn")
+        .addEventListener("click", () => {
+          renderCalendar(currentCalYear, currentCalMonth);
+          switchView(calendarView);
+        });
+
+      document
+        .getElementById("cancelBtn")
+        .addEventListener("click", () => switchView(dashboardView));
+      document
+        .getElementById("backToDashFromCalBtn")
+        .addEventListener("click", () => switchView(dashboardView));
+
+      const modeNormalBtn = document.getElementById("modeNormalBtn");
+      const modeSubBtn = document.getElementById("modeSubBtn");
+      const transactionForm = document.getElementById("transactionForm");
+      const subscriptionForm = document.getElementById("subscriptionForm");
+
+      modeNormalBtn.addEventListener("click", () => {
+        modeNormalBtn.className = "btn btn-primary";
+        modeSubBtn.className = "btn btn-outline";
+        transactionForm.classList.remove("hidden");
+        subscriptionForm.classList.add("hidden");
+      });
+      modeSubBtn.addEventListener("click", () => {
+        modeSubBtn.className = "btn btn-primary";
+        modeNormalBtn.className = "btn btn-outline";
+        subscriptionForm.classList.remove("hidden");
+        transactionForm.classList.add("hidden");
+      });
+
+      // --- カレンダー描画ロジック ---
+      function renderCalendar(year, month) {
+        document.getElementById("calendarTitle").textContent =
+          `${year}年 ${month + 1}月`;
+        const grid = document.getElementById("calendarGrid");
+        grid.innerHTML = "";
+
+        const daysOfWeek = ["日", "月", "火", "水", "木", "金", "土"];
+        daysOfWeek.forEach((day) => {
+          const dayHeader = document.createElement("div");
+          dayHeader.className = "calendar-day-header";
+          dayHeader.textContent = day;
+          grid.appendChild(dayHeader);
+        });
+
+        const firstDay = new Date(year, month, 1).getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+        for (let i = 0; i < firstDay; i++) {
+          const emptyCell = document.createElement("div");
+          grid.appendChild(emptyCell);
+        }
+
+        // 「今日の0時0分」を取得（過去・未来の比較用）
+        const todayObj = new Date();
+        todayObj.setHours(0, 0, 0, 0);
+
+        for (let day = 1; day <= daysInMonth; day++) {
+          const cell = document.createElement("div");
+          cell.className = "calendar-day";
+
+          const dateString = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+          const cellDateObj = new Date(year, month, day); // カレンダーのそのマスの日付
+
+          let dayIncome = 0;
+          let dayExpense = 0;
+
+          // 通常の収支の計算
+          allTransactions.forEach((t) => {
+            const tDate = t.transaction_date.split("T")[0];
+            if (tDate === dateString) {
+              if (t.transaction_type === "income")
+                dayIncome += Number(t.amount);
+              else dayExpense += Number(t.amount);
+            }
+          });
+
+          // 👇 サブスクリプションの描画ロジック 👇
+          let subHtml = "";
+          allSubscriptions.forEach((sub) => {
+            // DBに保存されている次回引き落とし日から「日」だけを取り出す
+            const billingDay = new Date(sub.next_billing_date).getDate();
+
+            if (billingDay === day) {
+              // そのマスが今日より過去か未来かを判定
+              const isPast = cellDateObj <= todayObj;
+
+              // 状態に応じてデザインとホバー時のテキスト（title）を変える
+              const tooltipText = isPast ? "引き落とし後" : "引き落とし前";
+              const subClass = isPast
+                ? "sub-item sub-past"
+                : "sub-item sub-future";
+              const prefix = isPast ? "-" : "予定: -";
+
+              subHtml += `<div class="${subClass}" title="${tooltipText}">🔄 ${sub.service_name}<br>${prefix}${Number(sub.amount).toLocaleString()}円</div>`;
+            }
+          });
+
+          // セルの組み立て
+          let cellHtml = `<div class="day-number">${day}</div>`;
+          if (dayIncome > 0)
+            cellHtml += `<div class="day-income">+${dayIncome.toLocaleString()}</div>`;
+          if (dayExpense > 0)
+            cellHtml += `<div class="day-expense">-${dayExpense.toLocaleString()}</div>`;
+          cellHtml += subHtml; // サブスクのHTMLを合体させる
+
+          cell.innerHTML = cellHtml;
+
+          // クリック時の処理（通常通り日付をセットしてフォームへ）
+          cell.addEventListener("click", (e) => {
+            transactionDateInput.value = dateString;
+            switchView(formView);
+          });
+
+          grid.appendChild(cell);
+        }
+      }
+
+      document.getElementById("prevMonthBtn").addEventListener("click", () => {
+        currentCalMonth--;
+        if (currentCalMonth < 0) {
+          currentCalMonth = 11;
+          currentCalYear--;
+        }
+        renderCalendar(currentCalYear, currentCalMonth);
+      });
+      document.getElementById("nextMonthBtn").addEventListener("click", () => {
+        currentCalMonth++;
+        if (currentCalMonth > 11) {
+          currentCalMonth = 0;
+          currentCalYear++;
+        }
+        renderCalendar(currentCalYear, currentCalMonth);
+      });
+
+      // --- データの同時取得 ---
       async function fetchDashboardData() {
         try {
-          const response = await fetch("http://localhost:3000/transactions");
-          const data = await response.json();
+          // 1. 通常の収支を取得
+          const transResponse = await fetch(
+            "http://localhost:3000/transactions",
+          );
+          allTransactions = await transResponse.json();
+
+          // 2. サブスクデータを取得
+          const subResponse = await fetch(
+            "http://localhost:3000/transactions/subscriptions",
+          );
+          allSubscriptions = await subResponse.json();
 
           let totalIncome = 0;
           let totalExpense = 0;
           const tbody = document.getElementById("historyTableBody");
           tbody.innerHTML = "";
 
-          data.forEach((item) => {
+          allTransactions.forEach((item) => {
             const amount = Number(item.amount);
-
             if (item.transaction_type === "income") {
               totalIncome += amount;
             } else {
               totalExpense += amount;
             }
-
             const date = new Date(item.transaction_date).toLocaleDateString(
               "ja-JP",
             );
@@ -262,34 +574,54 @@
         }
       }
 
-      // --- フォーム送信処理 ---
+      // --- 送信処理 ---
       transactionForm.addEventListener("submit", async (e) => {
         e.preventDefault();
-
         const data = {
           user_id: document.getElementById("userId").value,
+          transaction_date: document.getElementById("transactionDate").value,
           amount: document.getElementById("amount").value,
           transaction_type: document.getElementById("type").value,
           category: document.getElementById("category").value,
         };
+        await submitData(
+          "http://localhost:3000/transactions",
+          data,
+          transactionForm,
+        );
+      });
 
+      subscriptionForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const data = {
+          user_id: document.getElementById("userId").value,
+          amount: document.getElementById("subAmount").value,
+          service_name: document.getElementById("subName").value,
+          billing_day: document.getElementById("billingDay").value,
+        };
+        await submitData(
+          "http://localhost:3000/transactions/subscription",
+          data,
+          subscriptionForm,
+        );
+      });
+
+      async function submitData(url, data, formElement) {
         const messageDiv = document.getElementById("message");
         messageDiv.style.color = "black";
         messageDiv.textContent = "送信中...";
-
         try {
-          const response = await fetch("http://localhost:3000/transactions", {
+          const response = await fetch(url, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(data),
           });
-
           if (response.ok) {
-            transactionForm.reset();
+            formElement.reset();
+            transactionDateInput.value = todayStr;
             messageDiv.textContent = "";
             await fetchDashboardData();
-            formView.classList.add("hidden");
-            dashboardView.classList.remove("hidden");
+            switchView(dashboardView);
           } else {
             throw new Error("サーバーエラー");
           }
@@ -298,9 +630,8 @@
           messageDiv.style.color = "red";
           messageDiv.textContent = "エラーが発生しました。";
         }
-      });
+      }
 
-      // ページ読み込み時に初期データを取得
       fetchDashboardData();
     </script>
   </body>
