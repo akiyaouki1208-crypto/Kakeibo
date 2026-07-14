@@ -7,10 +7,14 @@ const db = require("../db");
 // ==========================================
 
 // GET /transactions (全データの取得)
+// 変更前： router.get('/', async (req, res) => { ...
+// 👇 変更後：
 router.get("/", async (req, res) => {
+  const userId = req.query.user_id; // フロントエンドから送られてきたIDを受け取る
   try {
     const result = await db.query(
-      "SELECT * FROM Transactions ORDER BY created_at DESC",
+      "SELECT * FROM Transactions WHERE user_id = $1 ORDER BY transaction_date DESC",
+      [userId], // そのIDのデータだけを絞り込む
     );
     res.json(result.rows);
   } catch (error) {
@@ -77,11 +81,14 @@ router.post("/subscription", async (req, res) => {
   }
 });
 
-// GET /transactions/subscriptions (サブスク一覧の取得)
+// 変更前： router.get('/subscriptions', async (req, res) => { ...
+// 👇 変更後：
 router.get("/subscriptions", async (req, res) => {
+  const userId = req.query.user_id; // フロントエンドから送られてきたIDを受け取る
   try {
     const result = await db.query(
-      "SELECT * FROM Subscriptions ORDER BY created_at DESC",
+      "SELECT * FROM Subscriptions WHERE user_id = $1 ORDER BY created_at DESC",
+      [userId], // そのIDのデータだけを絞り込む
     );
     res.json(result.rows);
   } catch (error) {
@@ -89,7 +96,6 @@ router.get("/subscriptions", async (req, res) => {
     res.status(500).json({ error: "サブスクデータの取得に失敗しました" });
   }
 });
-// 👆 追加ここまで 👆
 
 // ==========================================
 // 2. 開発用の一時的なAPI
