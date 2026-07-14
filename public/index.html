@@ -532,8 +532,23 @@
             password: document.getElementById("regPassword").value,
           });
         });
+      // 変更前：localStorage.removeItem と switchView しかなかった部分
+      // 👇 変更後：以下のようにします
       document.getElementById("logoutBtn").addEventListener("click", () => {
         localStorage.removeItem("kakeibo_user_id");
+
+        // 👇 追加：ログアウト時に画面のメモリを完全に空っぽにする
+        allTransactions = [];
+        allSubscriptions = [];
+        userGoal = null;
+        document.getElementById("historyTableBody").innerHTML = "";
+
+        // グラフも一度破壊してリセットする
+        if (trendChartInstance) {
+          trendChartInstance.destroy();
+          trendChartInstance = null;
+        }
+
         switchView(authView);
       });
 
@@ -585,7 +600,6 @@
         document.getElementById("totalBalance").textContent =
           `${currentBalance.toLocaleString()}円`;
 
-        // 目標トラッカーの更新
         if (userGoal && userGoal.goal_name) {
           const target = Number(userGoal.target_amount);
           const progressPercent =
@@ -598,6 +612,11 @@
           document.getElementById("goalAmountDisplay").textContent =
             `${displayBalance.toLocaleString()} / ${target.toLocaleString()}円 (${progressPercent}%)`;
           document.getElementById("goalProgress").value = progressPercent;
+        } else {
+          document.getElementById("goalNameDisplay").textContent = "未設定";
+          document.getElementById("goalAmountDisplay").textContent =
+            "0 / 0円 (0%)";
+          document.getElementById("goalProgress").value = 0;
         }
       }
 
