@@ -109,6 +109,55 @@ app.post("/login", async (req, res) => {
   }
 });
 
+// ==========================================
+// 目標トラッカー用API
+// ==========================================
+
+// 👇 サーバー起動時に自動でテーブルを確認・作成する安全設計を追加！
+db.query(
+  `
+  CREATE TABLE IF NOT EXISTS Goals (
+    user_id UUID PRIMARY KEY,
+    goal_name VARCHAR(255),
+    target_amount INTEGER
+  );
+`,
+)
+  .then(() => console.log("🎯 目標(Goals)テーブルの準備完了！"))
+  .catch((err) => console.error("目標テーブル準備エラー:", err));
+
+// 1. 目標の取得
+app.get("/goal", async (req, res) => {
+  const userId = req.query.user_id;
+  try {
+    const result = await db.query("SELECT * FROM Goals WHERE user_id = $1", [
+      userId,
+    ]);
+    res.json(result.rows[0] || null);
+  } catch (error) {
+    res.status(500).json({ error: "目標の取得に失敗しました" });
+  }
+});
+
+// 2. 目標の保存・更新
+app.post("/goal", async (req, res) => {
+  const { user_id, goal_name, target_amount } = req.body;
+  try {
+    const query = `
+      INSERT INTO Goals (user_id, goal_name, target_amount)
+      VALUES ($1, $2, $3)
+      ON CONFLICT (user_id) DO UPDATE 
+      SET goal_name = EXCLUDED.goal_name, target_amount = EXCLUDED.target_amount;
+    `;
+    await db.query(query, [user_id, goal_name, target_amount]);
+    res.json({ message: "目標を保存しました！" });
+  } catch (error) {
+    // 👇 もしエラーが起きたら、ターミナルに詳細を出すように改良
+    console.error("🎯 目標保存エラー:", error);
+    res.status(500).json({ error: "目標の保存に失敗しました" });
+  }
+});
+
 // サーバー起動
 app.listen(port, () => {
   console.log(`サーバーが起動しました: http://localhost:${port}`);

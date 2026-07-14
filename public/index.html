@@ -4,6 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>家計簿アプリ</title>
+    <!-- 👇 Chart.jsの読み込み -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
       body {
         font-family: sans-serif;
@@ -110,8 +112,13 @@
       .hidden {
         display: none;
       }
+      .header-flex {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
 
-      /* カレンダー・サブスク用スタイル */
+      /* カレンダー・サブスク・目標用スタイル */
       .calendar-header {
         display: flex;
         justify-content: space-between;
@@ -165,7 +172,6 @@
         font-weight: bold;
         margin-bottom: 2px;
       }
-
       .sub-item {
         font-size: 0.65em;
         width: 95%;
@@ -189,45 +195,48 @@
         cursor: help;
       }
 
-      /* ヘッダーレイアウト */
-      .header-flex {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
+      progress {
+        width: 100%;
+        height: 25px;
+        border-radius: 5px;
+        overflow: hidden;
+      }
+      progress::-webkit-progress-bar {
+        background-color: #e9ecef;
+      }
+      progress::-webkit-progress-value {
+        background-color: #28a745;
+        transition: width 0.5s ease;
       }
     </style>
   </head>
   <body>
-    <!-- ========================================== -->
     <!-- 0. ログイン・新規登録画面 -->
-    <!-- ========================================== -->
     <div id="authView">
       <h2 style="text-align: center">🔐 家計簿アプリへようこそ</h2>
       <div class="card">
         <h3>ログイン</h3>
         <form id="loginForm">
           <div class="form-group">
-            <label>ユーザー名</label>
-            <input type="text" id="loginUsername" required />
+            <label>ユーザー名</label
+            ><input type="text" id="loginUsername" required />
           </div>
           <div class="form-group">
-            <label>パスワード</label>
-            <input type="password" id="loginPassword" required />
+            <label>パスワード</label
+            ><input type="password" id="loginPassword" required />
           </div>
           <button type="submit" class="btn btn-primary">ログイン</button>
         </form>
-
         <hr style="margin: 20px 0" />
-
         <h3>はじめての方</h3>
         <form id="registerForm">
           <div class="form-group">
-            <label>ユーザー名</label>
-            <input type="text" id="regUsername" required />
+            <label>ユーザー名</label
+            ><input type="text" id="regUsername" required />
           </div>
           <div class="form-group">
-            <label>パスワード</label>
-            <input type="password" id="regPassword" required />
+            <label>パスワード</label
+            ><input type="password" id="regPassword" required />
           </div>
           <button type="submit" class="btn btn-success">新規登録</button>
         </form>
@@ -243,9 +252,7 @@
       </div>
     </div>
 
-    <!-- ========================================== -->
     <!-- 1. ダッシュボード画面 -->
-    <!-- ========================================== -->
     <div id="dashboardView" class="hidden">
       <div class="header-flex">
         <h2>📊 ダッシュボード</h2>
@@ -258,6 +265,7 @@
         </button>
       </div>
 
+      <!-- サマリーカード -->
       <div class="card">
         <div class="summary-grid">
           <div class="summary-item">
@@ -276,6 +284,64 @@
             0円
           </div>
         </div>
+      </div>
+
+      <!-- 👇 追加：折れ線グラフ -->
+      <div class="card">
+        <h3>📈 過去半年間の推移</h3>
+        <canvas id="trendChart"></canvas>
+      </div>
+
+      <!-- 👇 追加：目標トラッカー -->
+      <div class="card" id="goalTrackerCard">
+        <div class="header-flex">
+          <h3 style="margin: 0">🎯 目標トラッカー</h3>
+          <button
+            class="btn btn-outline"
+            id="editGoalBtn"
+            style="width: auto; padding: 5px 10px; margin: 0"
+          >
+            設定
+          </button>
+        </div>
+        <div id="goalDisplay" style="margin-top: 15px">
+          <div
+            style="
+              display: flex;
+              justify-content: space-between;
+              margin-bottom: 5px;
+              font-weight: bold;
+            "
+          >
+            <span id="goalNameDisplay">未設定</span>
+            <span id="goalAmountDisplay">0 / 0円 (0%)</span>
+          </div>
+          <progress id="goalProgress" value="0" max="100"></progress>
+        </div>
+        <form id="goalForm" class="hidden" style="margin-top: 15px">
+          <div class="form-group">
+            <input
+              type="text"
+              id="goalNameInput"
+              placeholder="目標の名前 (例: 旅行資金)"
+              required
+            />
+          </div>
+          <div class="form-group">
+            <input
+              type="number"
+              id="goalTargetInput"
+              placeholder="目標金額 (例: 100000)"
+              required
+            />
+          </div>
+          <div class="btn-group">
+            <button type="submit" class="btn btn-primary">保存</button>
+            <button type="button" class="btn btn-secondary" id="cancelGoalBtn">
+              キャンセル
+            </button>
+          </div>
+        </form>
       </div>
 
       <div class="btn-group">
@@ -302,9 +368,7 @@
       </div>
     </div>
 
-    <!-- ========================================== -->
     <!-- 2. カレンダー画面 -->
-    <!-- ========================================== -->
     <div id="calendarView" class="hidden">
       <h2>📅 カレンダー</h2>
       <div class="card">
@@ -320,9 +384,7 @@
       </button>
     </div>
 
-    <!-- ========================================== -->
     <!-- 3. 入力フォーム画面 -->
-    <!-- ========================================== -->
     <div id="formView" class="hidden">
       <h2>✍️ 記録を追加</h2>
       <div class="card">
@@ -332,26 +394,25 @@
             🔄 サブスク登録
           </button>
         </div>
-
         <form id="transactionForm">
           <div class="form-group">
-            <label for="transactionDate">日付</label>
-            <input type="date" id="transactionDate" required />
+            <label for="transactionDate">日付</label
+            ><input type="date" id="transactionDate" required />
           </div>
           <div class="form-group">
-            <label for="amount">金額 (円)</label>
-            <input type="number" id="amount" required placeholder="例: 1500" />
+            <label for="amount">金額 (円)</label
+            ><input type="number" id="amount" required placeholder="例: 1500" />
           </div>
           <div class="form-group">
-            <label for="type">種類</label>
-            <select id="type">
+            <label for="type">種類</label
+            ><select id="type">
               <option value="expense">支出</option>
               <option value="income">収入</option>
             </select>
           </div>
           <div class="form-group">
-            <label for="category">カテゴリ</label>
-            <input
+            <label for="category">カテゴリ</label
+            ><input
               type="text"
               id="category"
               required
@@ -360,11 +421,10 @@
           </div>
           <button type="submit" class="btn btn-primary">収支を保存する</button>
         </form>
-
         <form id="subscriptionForm" class="hidden">
           <div class="form-group">
-            <label for="subAmount">毎月の金額 (円)</label>
-            <input
+            <label for="subAmount">毎月の金額 (円)</label
+            ><input
               type="number"
               id="subAmount"
               required
@@ -372,30 +432,22 @@
             />
           </div>
           <div class="form-group">
-            <label for="subName">サブスク名</label>
-            <input
+            <label for="subName">サブスク名</label
+            ><input
               type="text"
               id="subName"
               required
-              placeholder="例: Netflix, Spotify"
+              placeholder="例: Netflix"
             />
           </div>
           <div class="form-group">
-            <label for="billingDay">毎月の引き落とし日 (1〜31日)</label>
-            <input
-              type="number"
-              id="billingDay"
-              required
-              min="1"
-              max="31"
-              placeholder="例: 25"
-            />
+            <label for="billingDay">毎月の引き落とし日 (1〜31日)</label
+            ><input type="number" id="billingDay" required min="1" max="31" />
           </div>
           <button type="submit" class="btn btn-success">
             サブスクを登録する
           </button>
         </form>
-
         <button
           type="button"
           class="btn btn-secondary"
@@ -411,23 +463,21 @@
       </div>
     </div>
 
-    <!-- ========================================== -->
     <!-- JavaScript ロジック -->
-    <!-- ========================================== -->
     <script>
-      // ビュー要素
-      const authView = document.getElementById("authView");
-      const dashboardView = document.getElementById("dashboardView");
-      const calendarView = document.getElementById("calendarView");
-      const formView = document.getElementById("formView");
+      const authView = document.getElementById("authView"),
+        dashboardView = document.getElementById("dashboardView");
+      const calendarView = document.getElementById("calendarView"),
+        formView = document.getElementById("formView");
       const authMessage = document.getElementById("authMessage");
 
-      let allTransactions = [];
-      let allSubscriptions = [];
-      let currentCalYear = new Date().getFullYear();
-      let currentCalMonth = new Date().getMonth();
+      let allTransactions = [],
+        allSubscriptions = [],
+        userGoal = null;
+      let currentCalYear = new Date().getFullYear(),
+        currentCalMonth = new Date().getMonth();
+      let trendChartInstance = null; // グラフのインスタンス
 
-      // 共通関数：画面切り替え
       function switchView(viewToShow) {
         authView.classList.add("hidden");
         dashboardView.classList.add("hidden");
@@ -436,7 +486,6 @@
         viewToShow.classList.remove("hidden");
       }
 
-      // --- 認証機能 (ログイン・登録・ログアウト) ---
       function getUserId() {
         return localStorage.getItem("kakeibo_user_id");
       }
@@ -452,63 +501,59 @@
           });
           const result = await res.json();
           if (res.ok) {
-            localStorage.setItem("kakeibo_user_id", result.user_id); // 金庫に保存
+            localStorage.setItem("kakeibo_user_id", result.user_id);
             authMessage.textContent = "";
             document.getElementById("loginForm").reset();
             document.getElementById("registerForm").reset();
-            initDashboard(); // ログイン成功したらデータ取得
+            initDashboard();
           } else {
             authMessage.style.color = "red";
             authMessage.textContent = result.error;
           }
         } catch (err) {
           authMessage.style.color = "red";
-          authMessage.textContent = "通信エラーが発生しました";
+          authMessage.textContent = "通信エラー";
         }
       }
 
       document.getElementById("loginForm").addEventListener("submit", (e) => {
         e.preventDefault();
-        const username = document.getElementById("loginUsername").value;
-        const password = document.getElementById("loginPassword").value;
-        handleAuth("http://localhost:3000/login", { username, password });
+        handleAuth("http://localhost:3000/login", {
+          username: document.getElementById("loginUsername").value,
+          password: document.getElementById("loginPassword").value,
+        });
       });
-
       document
         .getElementById("registerForm")
         .addEventListener("submit", (e) => {
           e.preventDefault();
-          const username = document.getElementById("regUsername").value;
-          const password = document.getElementById("regPassword").value;
-          handleAuth("http://localhost:3000/register", { username, password });
+          handleAuth("http://localhost:3000/register", {
+            username: document.getElementById("regUsername").value,
+            password: document.getElementById("regPassword").value,
+          });
         });
-
       document.getElementById("logoutBtn").addEventListener("click", () => {
-        localStorage.removeItem("kakeibo_user_id"); // 金庫から削除
-        switchView(authView); // ログイン画面へ戻す
+        localStorage.removeItem("kakeibo_user_id");
+        switchView(authView);
       });
 
-      // --- データ取得 (ダッシュボード初期化) ---
       async function initDashboard() {
         const userId = getUserId();
-        if (!userId) {
-          switchView(authView);
-          return;
-        }
-
+        if (!userId) return switchView(authView);
         try {
-          // 👇 APIの末尾に ?user_id=... を付けて「自分のデータだけ」を要求する
-          const transRes = await fetch(
-            `http://localhost:3000/transactions?user_id=${userId}`,
-          );
+          const [transRes, subRes, goalRes] = await Promise.all([
+            fetch(`http://localhost:3000/transactions?user_id=${userId}`),
+            fetch(
+              `http://localhost:3000/transactions/subscriptions?user_id=${userId}`,
+            ),
+            fetch(`http://localhost:3000/goal?user_id=${userId}`),
+          ]);
           allTransactions = await transRes.json();
-
-          const subRes = await fetch(
-            `http://localhost:3000/transactions/subscriptions?user_id=${userId}`,
-          );
           allSubscriptions = await subRes.json();
+          userGoal = await goalRes.json();
 
           renderDashboard();
+          renderChart(); // グラフを描画
           switchView(dashboardView);
         } catch (error) {
           console.error("データ取得エラー:", error);
@@ -516,8 +561,8 @@
       }
 
       function renderDashboard() {
-        let totalIncome = 0;
-        let totalExpense = 0;
+        let totalIncome = 0,
+          totalExpense = 0;
         const tbody = document.getElementById("historyTableBody");
         tbody.innerHTML = "";
 
@@ -525,38 +570,154 @@
           const amount = Number(item.amount);
           if (item.transaction_type === "income") totalIncome += amount;
           else totalExpense += amount;
-
           const date = new Date(item.transaction_date).toLocaleDateString(
             "ja-JP",
           );
           const colorClass =
             item.transaction_type === "income" ? "text-income" : "text-expense";
           const prefix = item.transaction_type === "income" ? "+" : "-";
-
           tbody.innerHTML += `<tr><td>${date}</td><td>${item.category}</td><td class="${colorClass}">${prefix}${amount.toLocaleString()}円</td></tr>`;
         });
 
+        const currentBalance = totalIncome - totalExpense;
         document.getElementById("totalIncome").textContent =
           `${totalIncome.toLocaleString()}円`;
         document.getElementById("totalExpense").textContent =
           `${totalExpense.toLocaleString()}円`;
         document.getElementById("totalBalance").textContent =
-          `${(totalIncome - totalExpense).toLocaleString()}円`;
+          `${currentBalance.toLocaleString()}円`;
+
+        // 目標トラッカーの更新
+        if (userGoal && userGoal.goal_name) {
+          const target = Number(userGoal.target_amount);
+          const progressPercent =
+            target > 0
+              ? Math.min(Math.floor((currentBalance / target) * 100), 100)
+              : 0;
+          const displayBalance = currentBalance < 0 ? 0 : currentBalance;
+          document.getElementById("goalNameDisplay").textContent =
+            userGoal.goal_name;
+          document.getElementById("goalAmountDisplay").textContent =
+            `${displayBalance.toLocaleString()} / ${target.toLocaleString()}円 (${progressPercent}%)`;
+          document.getElementById("goalProgress").value = progressPercent;
+        }
       }
 
-      // --- アプリ起動時のチェック ---
-      window.onload = () => {
-        if (getUserId()) {
-          initDashboard(); // ログイン済みならダッシュボードへ
-        } else {
-          switchView(authView); // 未ログインならログイン画面へ
+      // --- 👇 折れ線グラフの描画ロジック ---
+      function renderChart() {
+        const ctx = document.getElementById("trendChart").getContext("2d");
+        if (trendChartInstance) trendChartInstance.destroy();
+
+        const labels = [],
+          incomeData = [],
+          expenseData = [];
+        const now = new Date();
+
+        // 過去6ヶ月分のラベル（箱）を作る
+        for (let i = 5; i >= 0; i--) {
+          const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+          labels.push(`${d.getFullYear()}/${d.getMonth() + 1}`);
+          incomeData.push(0);
+          expenseData.push(0);
         }
+
+        // 履歴データを月ごとに振り分ける
+        allTransactions.forEach((t) => {
+          const d = new Date(t.transaction_date);
+          const monthStr = `${d.getFullYear()}/${d.getMonth() + 1}`;
+          const idx = labels.indexOf(monthStr);
+          if (idx !== -1) {
+            if (t.transaction_type === "income")
+              incomeData[idx] += Number(t.amount);
+            else expenseData[idx] += Number(t.amount);
+          }
+        });
+
+        trendChartInstance = new Chart(ctx, {
+          type: "line",
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: "収入",
+                data: incomeData,
+                borderColor: "#007bff",
+                backgroundColor: "rgba(0,123,255,0.1)",
+                fill: true,
+                tension: 0.3,
+              },
+              {
+                label: "支出",
+                data: expenseData,
+                borderColor: "#dc3545",
+                backgroundColor: "rgba(220,53,69,0.1)",
+                fill: true,
+                tension: 0.3,
+              },
+            ],
+          },
+          options: { responsive: true, scales: { y: { beginAtZero: true } } },
+        });
+      }
+
+      // --- 目標トラッカーのUI操作 ---
+      document.getElementById("editGoalBtn").addEventListener("click", () => {
+        document.getElementById("goalDisplay").classList.add("hidden");
+        document.getElementById("goalForm").classList.remove("hidden");
+        if (userGoal) {
+          document.getElementById("goalNameInput").value = userGoal.goal_name;
+          document.getElementById("goalTargetInput").value =
+            userGoal.target_amount;
+        }
+      });
+
+      document.getElementById("cancelGoalBtn").addEventListener("click", () => {
+        document.getElementById("goalForm").classList.add("hidden");
+        document.getElementById("goalDisplay").classList.remove("hidden");
+      });
+
+      // 👇 ここから下を改良しました（エラーキャッチ機能を追加） 👇
+      document
+        .getElementById("goalForm")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const data = {
+            user_id: getUserId(),
+            goal_name: document.getElementById("goalNameInput").value,
+            target_amount: document.getElementById("goalTargetInput").value,
+          };
+
+          try {
+            const res = await fetch("http://localhost:3000/goal", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(data),
+            });
+
+            if (res.ok) {
+              // 成功したらフォームを隠してダッシュボードを更新
+              document.getElementById("goalForm").classList.add("hidden");
+              document.getElementById("goalDisplay").classList.remove("hidden");
+              initDashboard();
+            } else {
+              // 失敗したらアラートでお知らせ
+              alert(
+                "目標の保存に失敗しました。サーバー側のエラーを確認してください。",
+              );
+            }
+          } catch (err) {
+            alert("通信エラーが発生しました。");
+          }
+        });
+
+      window.onload = () => {
+        if (getUserId()) initDashboard();
+        else switchView(authView);
       };
 
-      // --- 以下、カレンダーとフォームのUIロジック（変更なし） ---
+      // --- カレンダー・フォームUI（変更なし） ---
       const transactionDateInput = document.getElementById("transactionDate");
       const todayStr = new Date().toISOString().split("T")[0];
-
       document.getElementById("showFormBtn").addEventListener("click", () => {
         transactionDateInput.value = todayStr;
         switchView(formView);
@@ -592,30 +753,23 @@
           `${year}年 ${month + 1}月`;
         const grid = document.getElementById("calendarGrid");
         grid.innerHTML = "";
-
-        const daysOfWeek = ["日", "月", "火", "水", "木", "金", "土"];
-        daysOfWeek.forEach((day) => {
+        ["日", "月", "火", "水", "木", "金", "土"].forEach((day) => {
           const header = document.createElement("div");
           header.className = "calendar-day-header";
           header.textContent = day;
           grid.appendChild(header);
         });
-
-        const firstDay = new Date(year, month, 1).getDay();
-        const daysInMonth = new Date(year, month + 1, 0).getDate();
-
+        const firstDay = new Date(year, month, 1).getDay(),
+          daysInMonth = new Date(year, month + 1, 0).getDate();
         for (let i = 0; i < firstDay; i++)
           grid.appendChild(document.createElement("div"));
-
         const todayObj = new Date();
         todayObj.setHours(0, 0, 0, 0);
-
         for (let day = 1; day <= daysInMonth; day++) {
           const cell = document.createElement("div");
           cell.className = "calendar-day";
           const dateString = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
           const cellDateObj = new Date(year, month, day);
-
           let dayIncome = 0,
             dayExpense = 0;
           allTransactions.forEach((t) => {
@@ -625,7 +779,6 @@
               else dayExpense += Number(t.amount);
             }
           });
-
           let subHtml = "";
           allSubscriptions.forEach((sub) => {
             if (new Date(sub.next_billing_date).getDate() === day) {
@@ -633,14 +786,12 @@
               subHtml += `<div class="sub-item ${isPast ? "sub-past" : "sub-future"}" title="${isPast ? "引き落とし後" : "引き落とし前"}">🔄 ${sub.service_name}<br>${isPast ? "-" : "予定: -"}${Number(sub.amount).toLocaleString()}円</div>`;
             }
           });
-
           let cellHtml = `<div class="day-number">${day}</div>`;
           if (dayIncome > 0)
             cellHtml += `<div class="day-income">+${dayIncome.toLocaleString()}</div>`;
           if (dayExpense > 0)
             cellHtml += `<div class="day-expense">-${dayExpense.toLocaleString()}</div>`;
           cell.innerHTML = cellHtml + subHtml;
-
           cell.addEventListener("click", () => {
             transactionDateInput.value = dateString;
             switchView(formView);
@@ -666,38 +817,35 @@
         renderCalendar(currentCalYear, currentCalMonth);
       });
 
-      // --- フォーム送信 ---
       document
         .getElementById("transactionForm")
         .addEventListener("submit", async (e) => {
           e.preventDefault();
-          const data = {
-            user_id: getUserId(), // ログイン中のIDをセット
-            transaction_date: document.getElementById("transactionDate").value,
-            amount: document.getElementById("amount").value,
-            transaction_type: document.getElementById("type").value,
-            category: document.getElementById("category").value,
-          };
           await submitData(
             "http://localhost:3000/transactions",
-            data,
+            {
+              user_id: getUserId(),
+              transaction_date:
+                document.getElementById("transactionDate").value,
+              amount: document.getElementById("amount").value,
+              transaction_type: document.getElementById("type").value,
+              category: document.getElementById("category").value,
+            },
             e.target,
           );
         });
-
       document
         .getElementById("subscriptionForm")
         .addEventListener("submit", async (e) => {
           e.preventDefault();
-          const data = {
-            user_id: getUserId(), // ログイン中のIDをセット
-            amount: document.getElementById("subAmount").value,
-            service_name: document.getElementById("subName").value,
-            billing_day: document.getElementById("billingDay").value,
-          };
           await submitData(
             "http://localhost:3000/transactions/subscription",
-            data,
+            {
+              user_id: getUserId(),
+              amount: document.getElementById("subAmount").value,
+              service_name: document.getElementById("subName").value,
+              billing_day: document.getElementById("billingDay").value,
+            },
             e.target,
           );
         });
@@ -717,10 +865,9 @@
             if (document.getElementById("transactionDate"))
               document.getElementById("transactionDate").value = todayStr;
             messageDiv.textContent = "";
-            await initDashboard(); // 更新
-          } else {
-            throw new Error("サーバーエラー");
-          }
+            await initDashboard();
+            switchView(dashboardView);
+          } else throw new Error("サーバーエラー");
         } catch (error) {
           messageDiv.style.color = "red";
           messageDiv.textContent = "エラーが発生しました。";
