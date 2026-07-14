@@ -518,7 +518,7 @@
 
       document.getElementById("loginForm").addEventListener("submit", (e) => {
         e.preventDefault();
-        handleAuth("http://localhost:3000/login", {
+        handleAuth("/login", {
           username: document.getElementById("loginUsername").value,
           password: document.getElementById("loginPassword").value,
         });
@@ -527,7 +527,7 @@
         .getElementById("registerForm")
         .addEventListener("submit", (e) => {
           e.preventDefault();
-          handleAuth("http://localhost:3000/register", {
+          handleAuth("/register", {
             username: document.getElementById("regUsername").value,
             password: document.getElementById("regPassword").value,
           });
@@ -542,11 +542,9 @@
         if (!userId) return switchView(authView);
         try {
           const [transRes, subRes, goalRes] = await Promise.all([
-            fetch(`http://localhost:3000/transactions?user_id=${userId}`),
-            fetch(
-              `http://localhost:3000/transactions/subscriptions?user_id=${userId}`,
-            ),
-            fetch(`http://localhost:3000/goal?user_id=${userId}`),
+            fetch(`/transactions?user_id=${userId}`),
+            fetch(`/transactions/subscriptions?user_id=${userId}`),
+            fetch(`/goal?user_id=${userId}`),
           ]);
           allTransactions = await transRes.json();
           allSubscriptions = await subRes.json();
@@ -688,7 +686,7 @@
           };
 
           try {
-            const res = await fetch("http://localhost:3000/goal", {
+            const res = await fetch("/goal", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify(data),
@@ -822,7 +820,7 @@
         .addEventListener("submit", async (e) => {
           e.preventDefault();
           await submitData(
-            "http://localhost:3000/transactions",
+            "/transactions",
             {
               user_id: getUserId(),
               transaction_date:
@@ -839,7 +837,7 @@
         .addEventListener("submit", async (e) => {
           e.preventDefault();
           await submitData(
-            "http://localhost:3000/transactions/subscription",
+            "/transactions/subscription",
             {
               user_id: getUserId(),
               amount: document.getElementById("subAmount").value,
